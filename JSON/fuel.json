@@ -1,0 +1,22 @@
+[
+	{
+		"energy_id": 1,
+		"name": "gas",
+		"unit_type": "m³"
+	},
+	{
+		"energy_id": 2,
+		"name": "nuclear",
+		"unit_type": "MW"
+	},
+	{
+		"energy_id": 3,
+		"name": "Elec",
+		"unit_type": "kWh"
+	},
+	{
+		"energy_id": 4,
+		"name": "Oil",
+		"unit_type": "Litres"
+	}
+]

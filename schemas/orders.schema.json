@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Generated schema for Root",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Id": {
+        "type": "string"
+      },
+      "fuel": {
+        "type": "string"
+      },
+      "quantity": {
+        "type": "number"
+      },
+      "time": {
+        "type": "string"
+      },
+      "id": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "fuel",
+      "quantity",
+      "time"
+    ]
+  }
+}
