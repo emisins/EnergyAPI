@@ -6,7 +6,7 @@ import AJV from 'ajv'
 const ajv = new AJV()
 
 test.describe('GET endpoints for energy and orders should work and return valid JSON', () => {
-    test('Energy prices API test', { tag: ['@smoke']}, async ({ request }) => {
+    test('Energy prices API test', { tag: ['@smoke'] }, async ({ request }) => {
         const response = await request.get('/ENSEK/energy')
         expect(response.status()).toEqual(200)
         const energyPrices = await response.json()
@@ -25,7 +25,7 @@ test.describe('GET endpoints for energy and orders should work and return valid 
         expect(energyPrices.oil.energy_id).toBe(4)
     })
 
-    test('Orders API test', { tag: ['@smoke']}, async ({ request }) => {
+    test('Orders API test', { tag: ['@smoke'] }, async ({ request }) => {
         const response = await request.get('/ENSEK/orders')
         expect(response.status()).toEqual(200)
         const orders = await response.json()
@@ -55,8 +55,26 @@ test.describe('PUT endpoint to buy energy should work', () => {
             expect(response.status()).toEqual(200)
             const purchase = await response.json()
             const purchaseGUID = await extractGUID(purchase)
-            await verifyNewOrder(purchaseGUID, fuel[id-1].name, quantity)
+            await verifyNewOrder(purchaseGUID, fuel[id - 1].name, quantity)
         }
+    })
+})
+
+test.describe('PUT endpoint to buy energy - negative tests', () => {
+    test('Invalid fuel ID returns error', async ({ request }) => {
+        const response = await request.put(`/ENSEK/buy/7/0`)
+        expect(response.status()).toEqual(400)
+        const responseMessage = await response.json()
+        expect(responseMessage.message).toBe('Bad request')
+    })
+
+    test('Invalid amount value returns error)', async ({ request }) => {
+        const quantity = 1
+        const response = await request.put(`/ENSEK/buy/1/fail`)
+        expect(response.status()).toEqual(404)
+        const responseMessage = await response.json()
+        expect(responseMessage.message).toBe('Not Found')
+
     })
 })
 
@@ -88,22 +106,32 @@ test.describe('Get amount of orders before given time', () => {
         expect(myOrder.length).toEqual(5)
     })
 
-
+    test('Should output amount of orders created before current date', async ({ request }) => {
+        const orderDate = new Date().toDateString()
+        const response = await request.get('/ENSEK/orders')
+        expect(response.status()).toEqual(200)
+        const allOrders = await response.json()
+        const myOrder = allOrders.filter((x: { time: string }) => Date.parse(x.time) < Date.parse(orderDate))
+        expect(myOrder.length).toBeGreaterThanOrEqual(5)
+        console.log(`Amount of orders created before today: ${myOrder.length}`)
+    })
 })
 
-test.describe('API tests with access token', () => {
+test.describe('Orders API tests without access token', () => {
     test('Get order by ID', async ({ request }) => {
-        const orderGUID = "1d84abbf-ef09-4ade-b23a-087ee2ae575c"
+        const orderGUID = "080d9823-e874-4b5b-99ff-2021f2a59b24"
         const response = await request.get(`/ENSEK/orders/${orderGUID}`)
         expect(response.status()).toEqual(500)
     })
+
     test('Delete order by ID', async ({ request }) => {
-        const orderGUID = "1d84abbf-ef09-4ade-b23a-087ee2ae575c"
+        const orderGUID = "080d9823-e874-4b5b-99ff-2021f2a59b24"
         const response = await request.delete(`/ENSEK/orders/${orderGUID}`)
         expect(response.status()).toEqual(500)
     })
+
     test('Update order by ID', async ({ request }) => {
-        const orderGUID = "1d84abbf-ef09-4ade-b23a-087ee2ae575c"
+        const orderGUID = "af9e8791-2492-458b-8bab-12a772e58308"
         const response = await request.put(`/ENSEK/orders/${orderGUID}`, {
             data: {
                 "id": "af9e8791-2492-458b-8bab-12a772e58308",
@@ -113,12 +141,15 @@ test.describe('API tests with access token', () => {
         })
         expect(response.status()).toEqual(500)
     })
+})
 
-    test('get access token', async ({ request }) => {
+test.describe('Orders API tests with access token', () => {
+
+    test.beforeAll('get access token', async ({ request }) => {
         const responseToken = await request.post('/ENSEK/login', {
             data: {
-                "username": "test",
-                "password": "testing"
+                "username": `${process.env.USER_NAME}`,
+                "password": `${process.env.PASSWORD}`
             }
         })
         expect(responseToken.status()).toEqual(200)
@@ -127,21 +158,21 @@ test.describe('API tests with access token', () => {
         process.env['ACCESS_TOKEN'] = accessToken
     })
 
-    test.skip('reset test data in API', async ({ request }) => {
-        const responseToken = await request.post('/ENSEK/login', {
-            data: {
-                "username": "test",
-                "password": "testing"
+    test('Get order by ID', async ({ request }) => {
+        const orderGUID = "080d9823-e874-4b5b-99ff-2021f2a59b24"
+        const response = await request.get(`/ENSEK/orders/${orderGUID}`, {
+            headers: {
+                Authorization: `Bearer ${process.env.ACCESS_TOKEN}`
             }
         })
-        expect(responseToken.status()).toEqual(200)
-        const responseBody = await responseToken.json()
-        const accessToken = responseBody.access_token
-        process.env['ACCESS_TOKEN'] = accessToken 
+        expect(response.status()).toEqual(500)
+    })
+
+    test.skip('reset test data in API', async ({ request }) => {
         const response = await request.post('/ENSEK/reset', {
-        headers: {
-            Authorization: `Bearer ${process.env.ACCESS_TOKEN}`
-        }
+            headers: {
+                Authorization: `Bearer ${process.env.ACCESS_TOKEN}`
+            }
         })
         expect(response.status()).toEqual(200)
     })
